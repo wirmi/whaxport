@@ -105,24 +105,22 @@ def GetContacts():
 	ids = []
 
 	if(waFile):
-		for row in msgstore.execute(f'select ifnull(wa.display_name, "{ifNull}"), wa.jid, chat._id from wa.wa_contacts as wa\
-										inner join jid on wa.jid = jid.raw_string\
-										INNER JOIN chat on jid._id = chat.jid_row_id\
-										INNER JOIN message_media on chat._id = message_media.chat_row_id\
-										group by message_media.chat_row_id\
-										order by wa.display_name nulls last'):
+		for row in msgstore.execute(f'''select ifnull(wa.display_name, ifnull(chat.subject, "{ifNull}")) as name, jid.raw_string, chat._id from jid
+											left join wa.wa_contacts as wa on wa.jid = jid.raw_string
+											INNER JOIN chat on jid._id = chat.jid_row_id
+											where jid.raw_string != "status@broadcast"
+											order by ifnull(wa.display_name, chat.subject) nulls last'''):
 			contacts.append(str(row[0]) + " - " + str(row[1].split("-")[0].split("@")[0]))
 			ids.append(row[2])
 
 	else:
-		for row in msgstore.execute(f'select ifnull(chat.subject, "{ifNull}"), jid.raw_string, chat._id from chat\
-										INNER JOIN jid on chat.jid_row_id = jid._id\
-										INNER JOIN message_media on chat._id = message_media.chat_row_id\
-										where jid.raw_string != "status@broadcast"\
-										group by message_media.chat_row_id\
-										order by chat.subject nulls last;'):
+		for row in msgstore.execute(f'''select ifnull(chat.subject, "{ifNull}") as name, jid.raw_string, chat._id from chat
+											INNER JOIN jid on chat.jid_row_id = jid._id
+											where jid.raw_string != "status@broadcast"
+											order by chat.subject nulls last'''):
 			contacts.append(str(row[0]) + " - " + str(row[1].split("-")[0].split("@")[0]))
 			ids.append(row[2])
+
 
 	return contacts, ids
 

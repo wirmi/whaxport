@@ -101,8 +101,9 @@ def CloseDatabase():
 
 
 def GetContacts():
+	rawContacts = [] #•
 	contacts = []
-	ids = []
+	# ids = []
 
 	if(waFile):
 		for row in msgstore.execute(f'''select ifnull(wa.display_name, ifnull(chat.subject, "{ifNull}")) as name, jid.raw_string, chat._id from jid
@@ -111,7 +112,8 @@ def GetContacts():
 											where jid.raw_string != "status@broadcast"
 											order by ifnull(wa.display_name, chat.subject) nulls last'''):
 			contacts.append(str(row[0]) + " - " + str(row[1].split("-")[0].split("@")[0]))
-			ids.append(row[2])
+			rawContacts.append(row)
+			# ids.append(row[2])
 
 	else:
 		for row in msgstore.execute(f'''select ifnull(chat.subject, "{ifNull}") as name, jid.raw_string, chat._id from chat
@@ -119,10 +121,11 @@ def GetContacts():
 											where jid.raw_string != "status@broadcast"
 											order by chat.subject nulls last'''):
 			contacts.append(str(row[0]) + " - " + str(row[1].split("-")[0].split("@")[0]))
-			ids.append(row[2])
+			rawContacts.append(row)
+			# ids.append(row[2])
 
 
-	return contacts, ids
+	return contacts, rawContacts
 
 
 def Select(event):
@@ -131,9 +134,16 @@ def Select(event):
 	
 	if(selected != ''):
 		root.withdraw()
-		exportFolder += "\\" + selected + "\\"
+		exportFolder += selected + "\\"
 
-		CopyFromName(selected)
+		index = contacts.index(selected)
+
+		_id = rawContacts[index][2]
+		CopyFromName(_id)
+
+		if(contador != 0):
+			contact = [rawContacts[index][1], rawContacts[index][0]]
+			CreateHTML(contact)
 
 		option = ""
 		while(option != "y" and option != "yes" and option != "n" and option != "no"):
@@ -148,22 +158,19 @@ def Select(event):
 
 
 
-def CopyFromName(selected):
-
-	_id = ids[contacts.index(selected)]
-
+def CopyFromName(_id):
 	print("\nCopiando archivos...\n")
 	StartCopy(_id)
 	CloseDatabase()
 
-	if(contador != 0):
-		CopyDatabases()
+	# if(contador != 0):
+	# 	CopyDatabases()
 
 	print(contadorNoExist, "archivos no se encontraron en el origen.")
-	print(contador, "archivos copiados con éxito en " + os.path.abspath(exportFolder) + ".")
+	print(contador, "archivos copiados con éxito en " + os.path.abspath(exportFolder) + ".\n\n")
 
 	if(contador == 0):
-		print("\nComprueba la ruta dataFolder en el archivo .\\cfg\\settings.cfg")
+		print("Comprueba la ruta dataFolder en el archivo .\\cfg\\settings.cfg\n\n")
 
 
 
@@ -200,9 +207,11 @@ def CopyDatabases():
 		os.system('if not exist "' + destinationFolder + basenameContacts + '" copy "' + contactsDatabase + '" "' + destinationFolder + '" > NUL')
 
 
+def CreateHTML(contact):
+	rawString = contact[0]
+	name = contact[1]
 
-
-
+	os.system(f'python .\\CreateHTML\\src\\main.py "{rawString}" "{name}" "{database}" "{exportFolder}\\"')
 
 
 if __name__ == "__main__":
@@ -212,7 +221,7 @@ if __name__ == "__main__":
 
 	ConnectDatabases()
 
-	contacts, ids = GetContacts()
+	contacts, rawContacts = GetContacts()
 
 	CreateWindow()
 	Update(contacts)

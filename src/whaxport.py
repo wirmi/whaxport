@@ -139,7 +139,13 @@ def Select(event):
 		index = contacts.index(selected)
 
 		_id = rawContacts[index][2]
-		CopyFromName(_id)
+
+		mediaFound = CheckMedia(_id)
+
+		if(mediaFound != 0):
+			CopyFromName(_id, selected, mediaFound)
+		else:
+			print("No media was found.")
 
 		if(contador != 0):
 			contact = [rawContacts[index][1], rawContacts[index][0]]
@@ -157,24 +163,29 @@ def Select(event):
 		print("No has seleccionado ningún contacto.")
 
 
+def CheckMedia(_id):
+	return msgstore.execute(f'select count(*) from message_media where chat_row_id={_id}').fetchall()[0][0]
 
-def CopyFromName(_id):
-	print("\nCopiando archivos...\n")
-	StartCopy(_id)
+# def CheckMessages():
+
+
+def CopyFromName(_id, selected, mediaFound):
+	print("\nCopiando", mediaFound, "archivos de '" + selected + "'\n")
+	StartCopy(_id, mediaFound)
 	CloseDatabase()
 
 	# if(contador != 0):
 	# 	CopyDatabases()
 
-	print(contadorNoExist, "archivos no se encontraron en el origen.")
-	print(contador, "archivos copiados con éxito en " + os.path.abspath(exportFolder) + ".\n\n")
+	print("\n\n" + str(contadorNoExist), "archivos no se encontraron en el origen.")
+	print(contador, "archivos copiados con éxito en '" + os.path.abspath(exportFolder) + "'.\n\n")
 
 	if(contador == 0):
 		print("Comprueba la ruta dataFolder en el archivo .\\cfg\\settings.cfg\n\n")
 
 
 
-def StartCopy(_id):
+def StartCopy(_id, mediaFound):
 	global contador, contadorNoExist
 	for row in msgstore.execute(f'SELECT file_path FROM message_media where chat_row_id={_id}'):
 		# print(str(contador) + " - " + str(row[0]))
@@ -190,6 +201,8 @@ def StartCopy(_id):
 			contador += 1
 		else:
 			contadorNoExist += 1
+
+		print("\r" + str(round((contador+contadorNoExist)/mediaFound*100, 2)) + "%", end='')
 
 
 

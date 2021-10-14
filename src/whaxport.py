@@ -133,23 +133,36 @@ def Select(event):
 	selected, root = GetSelectVars()
 	
 	if(selected != ''):
+		print("'" + selected + "' seleccionado.")
+
 		root.withdraw()
 		exportFolder += selected + "\\"
 
 		index = contacts.index(selected)
 
 		_id = rawContacts[index][2]
+		rawString = rawContacts[index][1]
 
 		mediaFound = CheckMedia(_id)
 
 		if(mediaFound != 0):
-			CopyFromName(_id, selected, mediaFound)
+			CopyFromName(_id, mediaFound)
 		else:
-			print("No media was found.")
+			print("\nNo media was found.")
 
-		if(contador != 0):
-			contact = [rawContacts[index][1], rawContacts[index][0]]
+
+		messagesFound = CheckMessages(rawString)
+
+		if(messagesFound != 0):
+			if(not os.path.exists(exportFolder)):
+				os.makedirs(exportFolder)
+				
+			contact = [rawString, rawContacts[index][0]]
 			CreateHTML(contact)
+		else:
+			print("No message was found.")
+
+		CloseDatabase()
 
 		option = ""
 		while(option != "y" and option != "yes" and option != "n" and option != "no"):
@@ -166,22 +179,24 @@ def Select(event):
 def CheckMedia(_id):
 	return msgstore.execute(f'select count(*) from message_media where chat_row_id={_id}').fetchall()[0][0]
 
-# def CheckMessages():
+def CheckMessages(rawString):
+	return msgstore.execute(f'select count(*) from messages where key_remote_jid="{rawString}"').fetchall()[0][0]
 
-
-def CopyFromName(_id, selected, mediaFound):
-	print("\nCopiando", mediaFound, "archivos de '" + selected + "'\n")
+def CopyFromName(_id, mediaFound):
+	print("\nCopiando", mediaFound, "archivos.\n")
 	StartCopy(_id, mediaFound)
-	CloseDatabase()
+	print("\n")
 
 	# if(contador != 0):
 	# 	CopyDatabases()
 
-	print("\n\n" + str(contadorNoExist), "archivos no se encontraron en el origen.")
-	print(contador, "archivos copiados con éxito en '" + os.path.abspath(exportFolder) + "'.\n\n")
+	if(contadorNoExist != 0):
+		print(contadorNoExist, "archivos no se encontraron en el origen.")
+
+	print(contador, "archivos copiados con éxito en '" + os.path.abspath(exportFolder) + "'.")
 
 	if(contador == 0):
-		print("Comprueba la ruta dataFolder en el archivo .\\cfg\\settings.cfg\n\n")
+		print("\nComprueba la ruta dataFolder en el archivo .\\cfg\\settings.cfg")
 
 
 
